@@ -21,7 +21,7 @@ public partial class MainWindow : Window
             AllowMultiple = false,
         });
         if (folders.Count > 0)
-            Vm.RootPath = folders[0].Path.LocalPath;
+            Vm.RootPath = folders[0].TryGetLocalPath();
     }
 
     private async void OnBrowseDb(object? sender, RoutedEventArgs e)
@@ -38,7 +38,7 @@ public partial class MainWindow : Window
                 DefaultExtension = "dfdb",
                 FileTypeChoices = new[] { dictType },
             });
-            if (file is not null) Vm.DbPath = file.Path.LocalPath;
+            if (file is not null) Vm.DbPath = file.TryGetLocalPath();
         }
         else
         {
@@ -48,7 +48,7 @@ public partial class MainWindow : Window
                 AllowMultiple = false,
                 FileTypeFilter = new[] { dictType },
             });
-            if (files.Count > 0) Vm.DbPath = files[0].Path.LocalPath;
+            if (files.Count > 0) Vm.DbPath = files[0].TryGetLocalPath();
         }
     }
 
@@ -62,6 +62,6 @@ public partial class MainWindow : Window
             DefaultExtension = "txt",
             FileTypeChoices = new[] { new FilePickerFileType("Tekstbestand") { Patterns = new[] { "*.txt" } } },
         });
-        if (file is not null) Vm.LogPath = file.Path.LocalPath;
+        if (file is not null) Vm.LogPath = file.TryGetLocalPath();
     }
 }
