@@ -1,0 +1,89 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="DuplicatesFinder.Gui.MainWindow"
+        x:CompileBindings="False"
+        Width="940" Height="700"
+        MinWidth="640" MinHeight="480"
+        Title="DuplicatesFinder">
+
+  <DockPanel Margin="14">
+
+    <TextBlock DockPanel.Dock="Top" Text="DuplicatesFinder"
+               FontSize="22" FontWeight="Bold" Margin="0,0,0,4"/>
+    <TextBlock DockPanel.Dock="Top"
+               Text="Dubbele bestanden zoeken via SHA-256, en een opgeslagen dictionary vergelijken met een andere map of share."
+               Foreground="#666" Margin="0,0,0,12" TextWrapping="Wrap"/>
+
+    <StackPanel DockPanel.Dock="Top" Spacing="8">
+
+      <StackPanel Orientation="Horizontal" Spacing="20">
+        <RadioButton GroupName="mode" Content="Scannen (dubbelen zoeken + dictionary opslaan)"
+                     IsChecked="{Binding IsScanMode, Mode=TwoWay}"/>
+        <RadioButton GroupName="mode" Content="Vergelijken met een opgeslagen dictionary"
+                     IsChecked="{Binding IsCompareMode, Mode=TwoWay}"/>
+      </StackPanel>
+
+      <Grid ColumnDefinitions="140,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" >
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Map" VerticalAlignment="Center"/>
+        <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding RootPath}" Watermark="Hoofdmap om te scannen"/>
+        <Button    Grid.Row="0" Grid.Column="2" Content="Bladeren…" Click="OnBrowseRoot" Margin="6,0,0,0"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding DbLabel}" VerticalAlignment="Center" Margin="0,6,0,0"/>
+        <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding DbPath}" Watermark="*.dfdb" Margin="0,6,0,0"/>
+        <Button    Grid.Row="1" Grid.Column="2" Content="Bladeren…" Click="OnBrowseDb" Margin="6,6,0,0"/>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Logfile" VerticalAlignment="Center" Margin="0,6,0,0"/>
+        <TextBox   Grid.Row="2" Grid.Column="1" Text="{Binding LogPath}" Watermark="optioneel — standaard in de gekozen map" Margin="0,6,0,0"/>
+        <Button    Grid.Row="2" Grid.Column="2" Content="Bladeren…" Click="OnBrowseLog" Margin="6,6,0,0"/>
+
+        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="20" Margin="0,8,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="Threads" VerticalAlignment="Center"/>
+            <TextBox Width="60" Text="{Binding Threads}"/>
+          </StackPanel>
+          <CheckBox Content="Volledig pad vergelijken (i.p.v. relatief)"
+                    IsChecked="{Binding MatchAbsolute}" IsVisible="{Binding IsCompareMode}"/>
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+        <Button Content="{Binding RunLabel}" Command="{Binding RunCommand}" Width="120"
+                Background="#E8941A" Foreground="White" FontWeight="Bold"/>
+        <Button Content="Annuleren" Command="{Binding CancelCommand}" Width="100"/>
+        <Button Content="Logfile openen" Command="{Binding OpenLogCommand}"/>
+      </StackPanel>
+
+      <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressValue}"
+                   IsIndeterminate="{Binding ProgressIndeterminate}" Height="6" Margin="0,4,0,0"/>
+      <TextBlock Text="{Binding StatusText}" Foreground="#555"/>
+      <TextBlock Text="{Binding Summary}" FontWeight="Bold" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <Border BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Margin="0,10,0,0">
+      <ScrollViewer Padding="6">
+        <ItemsControl ItemsSource="{Binding Groups}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Margin="0,0,0,8" Padding="10" CornerRadius="4" Background="{Binding Background}">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding Title}" FontWeight="Bold" TextWrapping="Wrap"/>
+                  <TextBlock Text="{Binding Subtitle}" Foreground="#777" FontSize="11"
+                             IsVisible="{Binding HasSubtitle}"/>
+                  <ItemsControl ItemsSource="{Binding Paths}" Margin="0,4,0,0">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <SelectableTextBlock Text="{Binding}" FontFamily="Consolas, Courier New, monospace"
+                                             FontSize="12" TextWrapping="Wrap"/>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+  </DockPanel>
+</Window>

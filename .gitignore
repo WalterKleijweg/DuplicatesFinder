@@ -1,0 +1,13 @@
+## .NET build output
+bin/
+obj/
+
+## User-specific / IDE
+.vs/
+*.user
+*.suo
+
+## DuplicatesFinder runtime output
+*.dfdb
+duplicates-log.txt
+duplicates-compare-log.txt
