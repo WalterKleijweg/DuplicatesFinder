@@ -27,6 +27,12 @@ public sealed class MainViewModel : ViewModelBase
     public RelayCommand CancelCommand { get; }
     public RelayCommand OpenLogCommand { get; }
 
+    /// <summary>
+    /// Wordt door de view ingevuld: vraag de gebruiker om een nieuwe opslaglocatie nadat
+    /// opslaan mislukte (titel, voorgestelde bestandsnaam, extensie). Null = geannuleerd.
+    /// </summary>
+    public Func<string, string, string, Task<string?>>? RequestSavePath { get; set; }
+
     // ---- modus (twee elkaar uitsluitende radioknoppen) ----
 
     private bool _isScanMode = true;
@@ -160,8 +166,9 @@ public sealed class MainViewModel : ViewModelBase
                     return (res, loaded, scanner.Errors.Count, text);
                 }, ct);
 
-                Report.WriteToFile(logPath, log);
-                _lastLogPath = logPath;
+                var savedLog = await SaveWithRetryAsync(logPath, p => Report.WriteToFile(p, log),
+                    "Logfile opslaan als", "duplicates-compare-log.txt", "txt");
+                if (savedLog is not null) { logPath = savedLog; LogPath = savedLog; _lastLogPath = savedLog; }
                 PopulateCompare(result);
                 Summary = $"Verwachte kopieën: {result.Expected.Count:N0}   •   RAAR (ander pad): {result.Weird.Count:N0}   •   " +
                           $"Niet in dictionary: {result.NotInDb.Count:N0}   •   Overgeslagen: {errorCount:N0}";
@@ -174,14 +181,26 @@ public sealed class MainViewModel : ViewModelBase
                     var scanner = new Scanner(threads);
                     var files = scanner.Scan(root, progress, ct);
                     var database = Analysis.BuildDatabase(root, files);
-                    database.Save(dbPath);
                     var d = Analysis.FindDuplicates(database);
                     var text = Report.BuildScanLog(root, database, d, scanner.Errors);
                     return (d, database, scanner.Errors.Count, text);
                 }, ct);
 
-                Report.WriteToFile(logPath, log);
-                _lastLogPath = logPath;
+                var savedDb = await SaveWithRetryAsync(dbPath, db.Save,
+                    "Dictionary opslaan als", "duplicates-db.dfdb", "dfdb");
+                if (savedDb is null)
+                {
+                    StatusText = "Opslaan van de dictionary geannuleerd — er is niets bewaard.";
+                    ProgressIndeterminate = false;
+                    ProgressValue = 0;
+                    return;
+                }
+                dbPath = savedDb;
+                DbPath = savedDb;
+
+                var savedLog = await SaveWithRetryAsync(logPath, p => Report.WriteToFile(p, log),
+                    "Logfile opslaan als", "duplicates-log.txt", "txt");
+                if (savedLog is not null) { logPath = savedLog; LogPath = savedLog; _lastLogPath = savedLog; }
                 PopulateScan(dups);
                 long wasted = Analysis.WastedBytes(dups);
                 Summary = $"Unieke: {db.ByHash.Count:N0}   •   Totaal: {db.FileCount:N0}   •   Dubbele groepen: {dups.Count:N0}   •   " +
@@ -210,6 +229,33 @@ public sealed class MainViewModel : ViewModelBase
             _cts?.Dispose();
             _cts = null;
             RaiseCommands();
+        }
+    }
+
+    /// <summary>
+    /// Slaat iets op via <paramref name="save"/>. Lukt dat niet door ontbrekende schrijfrechten
+    /// (bijv. direct in C:\), dan vraagt de gebruiker om een andere locatie en proberen we het
+    /// opnieuw. Retourneert het uiteindelijke pad, of null als de gebruiker annuleerde.
+    /// </summary>
+    private async Task<string?> SaveWithRetryAsync(
+        string path, Action<string> save, string title, string suggestedName, string ext)
+    {
+        while (true)
+        {
+            try
+            {
+                await Task.Run(() => save(path));
+                return path;
+            }
+            catch (Exception ex) when (
+                ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+            {
+                if (RequestSavePath is null) throw;
+                StatusText = $"Kan niet opslaan op '{path}': {ex.Message} — kies een andere locatie.";
+                var picked = await RequestSavePath(title, suggestedName, ext);
+                if (picked is null) return null;   // gebruiker annuleerde de keuze
+                path = picked;
+            }
         }
     }
 

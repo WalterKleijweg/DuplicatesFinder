@@ -8,9 +8,28 @@ namespace DuplicatesFinder.Gui;
 
 public partial class MainWindow : Window
 {
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        DataContextChanged += (_, _) =>
+        {
+            if (Vm is not null) Vm.RequestSavePath = RequestSavePathAsync;
+        };
+    }
 
     private MainViewModel? Vm => DataContext as MainViewModel;
+
+    /// <summary>Toont een opslaan-dialoog wanneer de standaardlocatie niet beschrijfbaar bleek.</summary>
+    private async Task<string?> RequestSavePathAsync(string title, string suggestedName, string ext)
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedName,
+            DefaultExtension = ext,
+        });
+        return file?.TryGetLocalPath();
+    }
 
     private async void OnBrowseRoot(object? sender, RoutedEventArgs e)
     {
